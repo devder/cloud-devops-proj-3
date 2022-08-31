@@ -211,7 +211,15 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk add --update --no-cache aws-cli tar gzip ansible
+            apk add --update --no-cache tar gzip ansible
+      - run:
+          name: Install AWS CLI dependencies
+          working_directory: /tmp
+          command: |
+            sudo apt-get update && sudo apt-get install -yy less
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
       - run:
           name: Configure server
           command: |
@@ -227,6 +235,10 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install dependencies
+          command: |
+            apk add --update --no-cache tar gzip nodejs npm curl
+      - run:
           name: Install AWS CLI dependencies
           working_directory: /tmp
           command: |
@@ -234,10 +246,6 @@ jobs:
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
             sudo ./aws/install
-      - run:
-          name: Install dependencies
-          command: |
-            apk add --update --no-cache tar gzip nodejs npm curl
       - restore_cache:
           keys: [backend-build]
       - run:
@@ -271,7 +279,10 @@ jobs:
       - run:
           name: Get backend url
           command: |
-            # your code here
+            aws ec2 describe-instances \
+             --query 'Reservations[*].Instances[*].PublicIpAddress' \
+             --filters "Name=tag:aws:cloudformation:stack-name,Values=udapeople-backend-${CIRCLE_WORKFLOW_ID:0:7}" \
+             --output text
             export API_URL="http://${BACKEND_IP}:3030"
             echo "${API_URL}"
       - run:
