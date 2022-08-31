@@ -203,15 +203,15 @@ jobs:
       # Checkout code from git
       - checkout
       # Add ssh keys with fingerprint
+      # attach workspace
+      - attach_workspace:
+          at: ~/
       - add_ssh_keys:
           fingerprints: ['bb:43:4f:53:47:59:99:a3:27:cb:2c:71:99:a1:b1:22']
       - run:
           name: Install dependencies
           command: |
-            apk add --update --no-cache awscli tar gzip ansible
-      # attach workspace
-      - attach_workspace:
-          at: ~/
+            apk add --update --no-cache aws-cli tar gzip ansible
       - run:
           name: Configure server
           command: |
@@ -227,9 +227,17 @@ jobs:
     steps:
       - checkout
       - run:
+          name: Install AWS CLI dependencies
+          working_directory: /tmp
+          command: |
+            sudo apt-get update && sudo apt-get install -yy less
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
+      - run:
           name: Install dependencies
           command: |
-            apk add --update --no-cache tar gzip nodejs npm curl awscli
+            apk add --update --no-cache tar gzip nodejs npm curl
       - restore_cache:
           keys: [backend-build]
       - run:
@@ -249,25 +257,27 @@ jobs:
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
-  # deploy-frontend:
-  #   docker:
-  #     # Docker image here that supports AWS CLI
-  #   steps:
-  #     # Checkout code from git
-  #     - run:
-  #         name: Install dependencies
-  #         command: |
-  #           # your code here
-  #     - run:
-  #         name: Get backend url
-  #         command: |
-  #           # your code here
-  #           export API_URL="http://${BACKEND_IP}:3030"
-  #           echo "${API_URL}"
-  #     - run:
-  #         name: Deploy frontend objects
-  #         command: |
-  #           # your code here
+  deploy-frontend:
+    docker:
+      # Docker image here that supports AWS CLI
+      - image: amazon/aws-cli
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update --no-cache tar gzip nodejs npm aws-cli
+
+      - run:
+          name: Get backend url
+          command: |
+            # your code here
+            export API_URL="http://${BACKEND_IP}:3030"
+            echo "${API_URL}"
+      - run:
+          name: Deploy frontend objects
+          command: |
+            # your code here
   #     # Here's where you will add some code to rollback on failure
 
   # deploy-backend:
