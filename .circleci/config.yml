@@ -205,13 +205,13 @@ jobs:
       # Add ssh keys with fingerprint
       - add_ssh_keys:
           fingerprints: ['bb:43:4f:53:47:59:99:a3:27:cb:2c:71:99:a1:b1:22']
-      # attach workspace
-      - attach_workspace:
-          at: ~/
       - run:
           name: Install dependencies
           command: |
-            apk add --update --no-cache tar gzip ansible aws-cli
+            apk add --update --no-cache aws-cli tar gzip ansible
+      # attach workspace
+      - attach_workspace:
+          at: ~/
       - run:
           name: Configure server
           command: |
