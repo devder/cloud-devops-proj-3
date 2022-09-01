@@ -15,11 +15,11 @@ commands:
           when: on_fail
           command: |
             aws cloudformation delete-stack --stack-name udapeople-backend-<< parameters.workflow_id >> 
-            aws s3 rm s3://udapeople-crunchy --recursive 
+            aws s3 rm s3://udapeople-<< parameters.workflow_id >> --recursive 
             aws cloudformation delete-stack --stack-name udapeople-frontend-<< parameters.workflow_id >>
   # aws cloudformation delete-stack \
   # --stack-name udapeople-backend-<< parameters.workflow_id >>
-  # aws s3 rm s3://udapeople-crunchy --recursive \
+  # aws s3 rm s3://udapeople-<< parameters.workflow_id >> --recursive \
   # aws cloudformation delete-stack \
   # --stack-name udapeople-frontend-<< parameters.workflow_id >>
 
@@ -27,23 +27,21 @@ commands:
     description: Revert the last migration if successfully run in the current workflow.
     parameters:
       # Add parameter here
-      when:
-        type: string
-      id:
+      workflow_id:
         type: string
     steps:
       - run:
           name: Revert migrations
           # Add when this will run
+          when: on_fail
           command: |
             # Curl command here to see if there was a successful migration associated with the workflow id, store result in SUCCESS variable
             SUCCESS = 1
             if(( $SUCCESS==1 )); 
             then
-            #  cd ~/project/backend
-            #  npm install
-            #  Add revert code here. You can find this in the Getting Started section.
-              exit 1
+             cd ~/project/backend
+             npm install
+             npm run migrations:revert
             fi
 
 jobs:
@@ -234,21 +232,15 @@ jobs:
 
   run-migrations:
     docker:
-      # Docker image here that supports NodeJS
-      # - image: cimg/node:13.8.0
-      - image: python:3.7-alpine3.11
+      - image: cimg/node:13.8.0
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
-            apk add --update --no-cache tar gzip nodejs npm curl sudo
-      - run:
-          name: Install AWS CLI dependencies
-          working_directory: /tmp
-          command: |
+            sudo apt install -y tar gzip curl 
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
+            unzip qq awscliv2.zip
             sudo ./aws/install
       - restore_cache:
           keys: [backend-build]
@@ -264,7 +256,7 @@ jobs:
             if grep -q "has been executed successfully" ~/project/backend/migrations_dump.txt
             then
              echo "Migration was successful..."
-             curl --insecure https://kvdb.io/8f4Ue9uowgAhsfHkbH5Msa/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
+             curl --insecure https://kvdb.io/TF6Hg1XQtgUzDRvangTkxY/migration_${CIRCLE_WORKFLOW_ID:0:7}  -d '1'
             fi
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
@@ -272,18 +264,17 @@ jobs:
   deploy-frontend:
     docker:
       # Docker image here that supports AWS CLI
-      - image: amazon/aws-cli
+      - image: python:3.7-alpine3.11
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
-            apk add --update --no-cache tar gzip nodejs npm
+            apk add --update --no-cache tar gzip nodejs npm curl sudo
       - run:
           name: Install AWS CLI dependencies
           working_directory: /tmp
           command: |
-            sudo apt-get update && sudo apt-get install -yy less
             curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
             unzip awscliv2.zip
             sudo ./aws/install
@@ -299,6 +290,8 @@ jobs:
             echo "API_URL = ${API_URL}"
             echo API_URL="http://${BACKEND_IP}:3030" >> frontend/.env
             cat frontend/.env
+      - restore_cache:
+          keys: [frontend-build]
       - run:
           name: Deploy frontend objects
           command: |
@@ -306,26 +299,59 @@ jobs:
             npm install
             npm run build
             tar -czvf artifact-"${CIRCLE_WORKFLOW_ID:0:7}".tar.gz dist
-            aws s3 cp dist s3://udapeople-crunchy --recursive
+            aws s3 cp dist s3://udapeople-<< parameters.workflow_id >> --recursive
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
-  #     # Here's where you will add some code to rollback on failure
+  deploy-backend:
+    docker:
+      # Docker image here that supports Ansible
+      - image: python:3.7-alpine3.11
+    steps:
+      # Checkout code from git
+      - checkout
+      # Add ssh keys with fingerprint
+      - add_ssh_keys:
+          fingerprints:
+            - 'bb:43:4f:53:47:59:99:a3:27:cb:2c:71:99:a1:b1:22'
+      - run:
+          name: Install dependencies
+          command: |
+            apk add --update --no-cache tar gzip ansible curl sudo npm nodejs openssh
+      - run:
+          name: Install AWS CLI dependencies
+          working_directory: /tmp
+          command: |
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
 
-  # deploy-backend:
-  #   docker:
-  #     # Docker image here that supports Ansible
-  #   steps:
-  #     # Checkout code from git
-  #     # Add ssh keys with fingerprint
-  #     # attach workspace
-  #     - run:
-  #         name: Install dependencies
-  #         command: |
-  #           # your code here
-  #     - run:
-  #         name: Deploy backend
-  #         command: |
-  #           # your code here
-  #     # Here's where you will add some code to rollback on failure
+      # attach workspace
+      - attach_workspace:
+          at: ~/
+      - restore_cache:
+          keys: [backend-build]
+      - run:
+          name: Deploy backend
+          command: |
+            cd backend
+            npm i
+            npm run build
+            cd ..
+            tar -C backend -czvf artifact.tar.gz .
+            mkdir -p ~/project/.circleci/ansible/roles/deploy/files/
+            mv artifact.tar.gz .circleci/ansible/roles/deploy/files/artifact.tar.gz
+            cd .circleci/ansible
+            echo "Contents  of the inventory.txt file is -------"
+            cat inventory.txt
+            ansible-playbook -i inventory.txt deploy-backend.yml \
+            --key-file udacity.pem
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
   # smoke-test:
   #   docker:
@@ -407,10 +433,10 @@ workflows:
           requires: [deploy-infrastructure]
       - run-migrations:
           requires: [configure-infrastructure]
-      # - deploy-frontend:
-      #     requires: [run-migrations]
-      # - deploy-backend:
-      #     requires: [run-migrations]
+      - deploy-frontend:
+          requires: [run-migrations]
+      - deploy-backend:
+          requires: [run-migrations]
       # - smoke-test:
       #     requires: [deploy-backend, deploy-frontend]
       # - cloudfront-update:
