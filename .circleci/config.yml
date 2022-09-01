@@ -14,11 +14,14 @@ commands:
           name: Destroy environments
           when: on_fail
           command: |
-            aws cloudformation delete-stack \
-            --stack-name udapeople-backend-<< parameters.workflow_id >> 
-            aws s3 rm s3://udapeople-crunchy --recursive \
-            aws cloudformation delete-stack \
-            --stack-name udapeople-frontend-<< parameters.workflow_id >>
+            aws cloudformation delete-stack --stack-name udapeople-backend-<< parameters.workflow_id >> 
+            aws s3 rm s3://udapeople-crunchy --recursive 
+            aws cloudformation delete-stack --stack-name udapeople-frontend-<< parameters.workflow_id >>
+  # aws cloudformation delete-stack \
+  # --stack-name udapeople-backend-<< parameters.workflow_id >>
+  # aws s3 rm s3://udapeople-crunchy --recursive \
+  # aws cloudformation delete-stack \
+  # --stack-name udapeople-frontend-<< parameters.workflow_id >>
 
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
@@ -198,7 +201,8 @@ jobs:
   configure-infrastructure:
     docker:
       # Docker image here that supports Ansible
-      - image: python:3.7-alpine3.16 # for ansible
+      # - image: python:3.7-alpine3.16 # for ansible
+      - image: python:3.9.0-alpine
     steps:
       # Checkout code from git
       - checkout
@@ -210,16 +214,15 @@ jobs:
           name: Install dependencies
           command: |
             apk add --update --no-cache tar gzip ansible curl sudo
-            pip install awscli
       - attach_workspace:
           at: ~/
-      # - run:
-      #     name: Install AWS CLI dependencies
-      #     working_directory: /tmp
-      #     command: |
-      #       curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-      #       unzip awscliv2.zip
-      #       sudo ./aws/install
+      - run:
+          name: Install AWS CLI dependencies
+          working_directory: /tmp
+          command: |
+            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+            unzip awscliv2.zip
+            sudo ./aws/install
       - run:
           name: Configure server
           command: |
