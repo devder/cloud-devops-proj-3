@@ -1,14 +1,10 @@
 ---
-- name: 'update apt packages.'
-  become: yes
-  apt:
-    update_cache: yes
-    cache_valid_time: 86400
-
-- name: 'upgrade packages'
+- name: 'update and upgrade packages'
   become: yes
   apt:
     upgrade: yes
+    update_cache: yes
+    cache_valid_time: 86400
 
 - name: 'remove dependencies that are no longer needed'
   become: yes
@@ -27,5 +23,5 @@
   npm:
     name: pm2
     global: yes
-    state: present
+    state: latest
     production: yes
