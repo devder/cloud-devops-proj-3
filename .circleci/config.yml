@@ -264,20 +264,21 @@ jobs:
   deploy-frontend:
     docker:
       # Docker image here that supports AWS CLI
-      - image: python:3.7-alpine3.11
+      - image: python:3.7-alpine3.16
     steps:
       - checkout
       - run:
           name: Install dependencies
           command: |
             apk add --update --no-cache tar gzip nodejs npm curl sudo
-      - run:
-          name: Install AWS CLI dependencies
-          working_directory: /tmp
-          command: |
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
+            pip install awscli
+      # - run:
+      #     name: Install AWS CLI dependencies
+      #     working_directory: /tmp
+      #     command: |
+      #       curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      #       unzip awscliv2.zip
+      #       sudo ./aws/install
       - restore_cache:
           keys: [frontend-build]
       - run:
@@ -307,7 +308,7 @@ jobs:
   deploy-backend:
     docker:
       # Docker image here that supports Ansible
-      - image: python:3.7-alpine3.11
+      - image: python:3.7-alpine3.16
     steps:
       # Checkout code from git
       - checkout
@@ -318,18 +319,18 @@ jobs:
       - run:
           name: Install dependencies
           command: |
-            apk add --update --no-cache tar gzip ansible curl sudo npm nodejs openssh
-      - run:
-          name: Install AWS CLI dependencies
-          working_directory: /tmp
-          command: |
-            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-            unzip awscliv2.zip
-            sudo ./aws/install
-
+            apk add --update --no-cache tar gzip ansible curl  npm nodejs aws-cli
+      # apk add --update --no-cache tar gzip ansible curl sudo npm nodejs aws-cli
       # attach workspace
       - attach_workspace:
           at: ~/
+      # - run:
+      #     name: Install AWS CLI dependencies
+      #     working_directory: /tmp
+      #     command: |
+      #       curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+      #       unzip awscliv2.zip
+      #       sudo ./aws/install
       - restore_cache:
           keys: [backend-build]
       - run:
