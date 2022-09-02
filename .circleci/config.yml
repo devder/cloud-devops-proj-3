@@ -22,11 +22,6 @@ commands:
             aws cloudformation delete-stack --stack-name udapeople-backend-<< parameters.workflow_id >> 
             aws s3 rm s3://udapeople-<< parameters.workflow_id >> --recursive 
             aws cloudformation delete-stack --stack-name udapeople-frontend-<< parameters.workflow_id >>
-  # aws cloudformation delete-stack \
-  # --stack-name udapeople-backend-<< parameters.workflow_id >>
-  # aws s3 rm s3://udapeople-<< parameters.workflow_id >> --recursive \
-  # aws cloudformation delete-stack \
-  # --stack-name udapeople-frontend-<< parameters.workflow_id >>
 
   revert-migrations:
     description: Revert the last migration if successfully run in the current workflow.
@@ -104,15 +99,11 @@ jobs:
 
   test-backend:
     docker:
-      # Docker image here
       - image: cimg/node:13.8.0
     steps:
-      # Checkout code from git
       - checkout
-      # Restore from cache
       - restore_cache:
           keys: [backend-build]
-      # Your job code here
       - run:
           name: Run backend test
           command: |
@@ -122,15 +113,11 @@ jobs:
 
   scan-frontend:
     docker:
-      # Docker image here
       - image: cimg/node:13.8.0
     steps:
-      # Checkout code from git
       - checkout
-      # Restore from cache
       - restore_cache:
           keys: [frontend-build]
-      # Your job code here
       - run:
           name: Scan frontend dependencies
           command: |
@@ -141,15 +128,11 @@ jobs:
 
   scan-backend:
     docker:
-      # Docker image here
       - image: cimg/node:13.8.0
     steps:
-      # Checkout code from git
       - checkout
-      # Restore from cache
       - restore_cache:
           keys: [backend-build]
-      # Your job code here
       - run:
           name: Scan backend dependencies
           command: |
@@ -164,10 +147,8 @@ jobs:
 
   deploy-infrastructure:
     docker:
-      # Docker image here that supports AWS CLI
       - image: amazon/aws-cli
     steps:
-      # Checkout code from git
       - checkout
       - run: yum install -y tar gzip
       - run:
@@ -202,12 +183,9 @@ jobs:
 
   configure-infrastructure:
     docker:
-      # Docker image here that supports Ansible
       - image: python:3.7-alpine3.16 # for ansible
     steps:
-      # Checkout code from git
       - checkout
-      # Add ssh keys with fingerprint
       - add_ssh_keys:
           fingerprints:
             - 'bb:43:4f:53:47:59:99:a3:27:cb:2c:71:99:a1:b1:22'
@@ -267,7 +245,6 @@ jobs:
 
   deploy-frontend:
     docker:
-      # Docker image here that supports AWS CLI
       - image: python:3.7-alpine3.16
     steps:
       - checkout
@@ -276,13 +253,6 @@ jobs:
           command: |
             apk add --update --no-cache tar gzip nodejs npm curl sudo
             pip install awscli
-      # - run:
-      #     name: Install AWS CLI dependencies
-      #     working_directory: /tmp
-      #     command: |
-      #       curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-      #       unzip awscliv2.zip
-      #       sudo ./aws/install
       - restore_cache:
           keys: [frontend-build]
       - run:
@@ -311,12 +281,9 @@ jobs:
 
   deploy-backend:
     docker:
-      # Docker image here that supports Ansible
       - image: python:3.7-alpine3.16
     steps:
-      # Checkout code from git
       - checkout
-      # Add ssh keys with fingerprint
       - add_ssh_keys:
           fingerprints:
             - 'bb:43:4f:53:47:59:99:a3:27:cb:2c:71:99:a1:b1:22'
@@ -324,8 +291,6 @@ jobs:
           name: Install dependencies
           command: |
             apk add --update --no-cache tar gzip ansible curl  npm nodejs aws-cli
-      # apk add --update --no-cache tar gzip ansible curl sudo npm nodejs aws-cli
-      # attach workspace
       - attach_workspace:
           at: ~/
       - restore_cache:
@@ -355,7 +320,6 @@ jobs:
       - image: python:3.7-alpine3.16
     steps:
       - checkout
-      # Checkout code from git
       - run:
           name: Install dependencies
           command: |
@@ -394,10 +358,8 @@ jobs:
 
   cloudfront-update:
     docker:
-      # Docker image here that supports AWS CLI
       - image: amazon/aws-cli
     steps:
-      # Checkout code from git
       - checkout
       - run:
           name: Install dependencies
@@ -430,10 +392,8 @@ jobs:
 
   cleanup:
     docker:
-      # Docker image here
       - image: amazon/aws-cli
     steps:
-      # Checkout code from git
       - checkout
       - run:
           name: Install dependencies
@@ -461,87 +421,58 @@ jobs:
               echo "---Cannot Cleanup-----------"
             fi
 
-      # - run:
-      #     name: Remove old stacks and files
-      #     command: |
-      #       if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
-      #       then
-      #         echo ".....Deleting old version...."
-      #         aws s3 rm s3://udapeople-${OldWorkflowID} --recursive
-      #         aws cloudformation delete-stack --stack-name udapeople-frontend-${OldWorkflowID}
-      #         aws cloudformation delete-stack --stack-name udapeople-backend-${OldWorkflowID}
-      #       else
-      #         echo "---Cannot Cleanup-----------"
-      #       fi
-
-      # export OldWorkflowID=<< pipeline.parameters.workflow_id >>
-      # export STACKS=$(aws cloudformation list-stacks \
-      # --query "StackSummaries[*].StackName" \
-      # --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
-
-  del:
+  add-prometheus-node-exporter:
     docker:
-      # Docker image here
-      - image: amazon/aws-cli
+      - image: python:3.7-alpine3.16
     steps:
-      # Checkout code from git
       - checkout
+      - add_ssh_keys:
+          fingerprints:
+            - 'bb:43:4f:53:47:59:99:a3:27:cb:2c:71:99:a1:b1:22'
       - run:
           name: Install dependencies
           command: |
-            yum install -y tar gzip curl
+            apk add --update --no-cache tar gzip ansible curl npm nodejs aws-cli
+
       - attach_workspace:
           at: ~/
       - run:
-          name: Get old stack workflow id
+          name: Setup Prometheus Node Exporter
           command: |
-            # OldWorkflowID=$(cat ~/OldWorkflowID.txt)
-            # echo OldWorkflowID: "${OldWorkflowID}"
-            # echo $OldWorkflowID
-            # export STACKS=$(aws cloudformation list-stacks \
-            # --query "StackSummaries[*].StackName" \
-            # --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
-
-            export OldWorkflowID=<< pipeline.parameters.workflow_id >>
-            export STACKS=$(aws cloudformation list-stacks \
-            --query "StackSummaries[*].StackName" \
-            --stack-status-filter CREATE_COMPLETE --no-paginate --output text)
-
-      - run:
-          name: Remove old stacks and files
-          command: |
-            echo OldWorkflowID: "${OldWorkflowID}"
-            # if [[ "${STACKS[@]}" =~ "${OldWorkflowID}" ]]
-            # then
-              echo ".....Deleting old version...."
-              aws s3 rm s3://udapeople-996fb79 --recursive
-              aws cloudformation delete-stack --stack-name udapeople-frontend-996fb79
-              aws cloudformation delete-stack --stack-name udapeople-backend-996fb79
-            # else
-              # echo "---Cannot Cleanup-----------"
-            # fi
+            cd .circleci/ansible
+            ansible-playbook -i inventory.txt node-exporter.yml \
+            --key-file udacity.pem
+      - slack/notify:
+          event: fail
+          template: basic_fail_1
+      - destroy-environment:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
+      - revert-migrations:
+          workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
 
 workflows:
   default:
     jobs:
       - build-frontend
       - build-backend
-      - test-frontend:
-          requires: [build-frontend]
-      - test-backend:
-          requires: [build-backend]
-      - scan-backend:
-          requires: [build-backend]
-      - scan-frontend:
-          requires: [build-frontend]
+      # - test-frontend:
+      #     requires: [build-frontend]
+      # - test-backend:
+      #     requires: [build-backend]
+      # - scan-backend:
+      #     requires: [build-backend]
+      # - scan-frontend:
+      #     requires: [build-frontend]
       - deploy-infrastructure:
-          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          # requires: [build-frontend, build-backend]
+          # requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          requires: [build-frontend, build-backend]
           # filters:
           #   branches:
           #     only: [dev-branch]
-      - configure-infrastructure:
+      - add-prometheus-node-exporter:
           requires: [deploy-infrastructure]
+      - configure-infrastructure:
+          requires: [add-prometheus-node-exporter]
       - run-migrations:
           requires: [configure-infrastructure]
       - deploy-frontend:
