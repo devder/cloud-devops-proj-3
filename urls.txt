@@ -2,4 +2,4 @@ Public Url to GitHub repository (not private) [URL01]
   https://github.com/devder/cloud-devops-proj-3
 
 Public URL for your S3 Bucket (aka, your green candidate front-end) [URL02]
-  https://udapeople-7a01697.s3.amazonaws.com/index.html
+  http://udapeople-4bee2b1.s3-website-us-east-1.amazonaws.com
