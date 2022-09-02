@@ -8,11 +8,9 @@ Parameters:
   VPC:
     Description: Deploy the instance in this VPC
     Type: String
-    Default: vpc-01e4b38700a44d1fe
   Subnet:
     Description: This subnet must already exist
     Type: String
-    Default: subnet-0302c06068339f09c
   AZ:
     Description: Choose an AZ that corresponds to the Subnet in the !Subnet section
     Type: String
@@ -40,7 +38,6 @@ Parameters:
       This is the app password for your gmail account.
       Get one here https://support.google.com/accounts/answer/185833?hl=en
     Type: String
-    Default: dddhxkokpauyrsbw
   FromEmail:
     Description: This is the email to send alerts from (usually same as AuthEmail)
     Type: String

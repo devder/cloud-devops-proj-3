@@ -206,8 +206,7 @@ jobs:
           name: Configure server
           command: |
             cd .circleci/ansible
-            ansible-playbook -i inventory.txt configure-server.yml \
-            --key-file udacity.pem
+            ansible-playbook -i inventory.txt configure-server.yml
 
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
@@ -308,8 +307,7 @@ jobs:
             cd .circleci/ansible
             echo "Contents  of the inventory.txt file is -------"
             cat inventory.txt
-            ansible-playbook -i inventory.txt deploy-backend.yml \
-            --key-file udacity.pem
+            ansible-playbook -i inventory.txt deploy-backend.yml
       - destroy-environment:
           workflow_id: ${CIRCLE_WORKFLOW_ID:0:7}
       - revert-migrations:
@@ -440,8 +438,7 @@ jobs:
           name: Setup Prometheus Node Exporter
           command: |
             cd .circleci/ansible
-            ansible-playbook -i inventory.txt node-exporter.yml \
-            --key-file udacity.pem
+            ansible-playbook -i inventory.txt node-exporter.yml
       - slack/notify:
           event: fail
           template: basic_fail_1
@@ -455,20 +452,19 @@ workflows:
     jobs:
       - build-frontend
       - build-backend
-      # - test-frontend:
-      #     requires: [build-frontend]
-      # - test-backend:
-      #     requires: [build-backend]
-      # - scan-backend:
-      #     requires: [build-backend]
-      # - scan-frontend:
-      #     requires: [build-frontend]
+      - test-frontend:
+          requires: [build-frontend]
+      - test-backend:
+          requires: [build-backend]
+      - scan-backend:
+          requires: [build-backend]
+      - scan-frontend:
+          requires: [build-frontend]
       - deploy-infrastructure:
-          # requires: [test-frontend, test-backend, scan-frontend, scan-backend]
-          requires: [build-frontend, build-backend]
-          # filters:
-          #   branches:
-          #     only: [dev-branch]
+          requires: [test-frontend, test-backend, scan-frontend, scan-backend]
+          filters:
+            branches:
+              only: [dev-branch]
       - add-prometheus-node-exporter:
           requires: [deploy-infrastructure]
       - configure-infrastructure:
